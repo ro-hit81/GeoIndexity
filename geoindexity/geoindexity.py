@@ -1,7 +1,19 @@
+"""
+This script includes the core GeoIndexity classes and functions.
+
+GeoIndexity classes and functions are based on the earth-engine API
+for GooglEarthEngine (GEE). A valid GEE account is therefore
+necessary to use GeoIndexity (See [INSERT LINK TO GITHUB README HERE])
+"""
+
+
 import ee
 ee.Initialize()
 
 class Landsat:
+    """
+    Under construction.
+    """
     def __init__(self, roi, start_date, end_date, collection_id, properties=None):
         self.roi = roi
         self.start_date = start_date
@@ -42,6 +54,9 @@ class Landsat:
         print(f'Total Landsat images collected: {self.select_product().size().getInfo()}')
     
 class Sentinel:
+    """
+    A class that
+    """
     def __init__(self, roi, start_date, end_date, collection_id, properties=None):
         self.roi = roi
         self.start_date = start_date
