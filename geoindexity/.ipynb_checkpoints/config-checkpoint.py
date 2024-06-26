@@ -6,7 +6,7 @@ roi = [
 ]
 start_date = '2020-01-01'
 end_date  = '2020-03-20'
-collection_id = 'LANDSAT/LC08/C02/T1_TOA'
+collection_id = 'COPERNICUS/S2_SR_HARMONIZED'
 properties = {
-    'me':10
+    'CLOUDY_PIXEL_PERCENTAGE':10
 }
