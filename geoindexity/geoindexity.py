@@ -10,6 +10,10 @@ GEE account and using GeoIndexity, please see https://github.com/ro-hit81/GeoInd
 import ee
 ee.Initialize()
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
 class Landsat:
     """
     A class to handle Landsat satellite imagery from Google Earth Engine.
@@ -161,7 +165,7 @@ class Sentinel:
         Returns
         ----------
         ee.ImageCollection
-            The filtered Landsat image collection.
+            The filtered Sentinel image collection.
         
         Raises
         ----------
@@ -183,6 +187,203 @@ class Sentinel:
         print(f'Total Sentinel images collected: {self.select_product().size().getInfo()}')
 
 
+class Geoindexity:
+    """
+    The core Geoindexity time-series object.
+    After initializaton funcionality can be used to calculate indices, plot time-series export
+    time-series data.
+    ...
+
+    Attributes
+    ----------
+    roi : list
+        The region of interest defined by [xmin, ymin, xmax, ymax].
+    start_date : str
+        The start date for filtering the image collection (format: 'YYYY-MM-DD').
+    end_date : str
+        The end date for filtering the image collection (format: 'YYYY-MM-DD').
+    collection_id: str
+         ID to choose a GEE collection. Default: 'Sentinel', 'Landsat'
+    properties: dict
+        Properties for additional filtering, such as CLOUDY_PIXEL_PERCENTAGE.
+    reducer: str
+        Tag indicating the latest used reducer.
+    df: DataFrame
+        Pandas dataframe that stores information of the latest reduction.
+
+    Methods
+    -------
+    len():
+        Returns the number of images in the time-series.
+    bound():
+        Returns the AOI as ee.Geometry.Rectanlge
+    add_ndvi(image):
+        Calculates and adds NDVI band to given image.
+        Used inside ndvi_collection function.
+    add_evi(image):
+        Calculates and adds EVI band to given image.
+        Used inside evi_collection function.
+    ndvi_collection():
+        Maps add_ndvi() to the image collection.
+    evi_collection():
+        Maps add_evi() to the image collection.
+    reduce_ndvi_mean():
+        Reduces the time-series collection based on the ROI using NDVI band and mean.
+    plot():
+       Standard plotting function for the geoindexity time-series object.
+    """
+
+    def __init__(self, roi, start_date, end_date, collection_id='Sentinel',
+                 properties=None):
+        self.roi = roi
+        self.start_date = start_date
+        self.end_date = end_date
+        self.collection_id = collection_id
+        self.properties = properties
+        self.reducer = None # attribute assigned when reduced
+        self.df = None # dataframe assigned when reduced
+
+        if self.collection_id == 'Sentinel':
+            self.collection = Sentinel(roi=self.roi,
+                                       start_date=self.start_date,
+                                       end_date=self.end_date,
+                                       properties=self.properties
+                                       ).select_product()
+
+        if self.collection_id == 'Landsat8':
+            self.collection = Landsat8(roi=self.roi,
+                                       start_date=self.start_date,
+                                       end_date=self.end_date,
+                                       properties=self.properties
+                                       ).select_product()
+
+    def __len__(self):
+        """Returns the number if images in the time-series."""
+        return self.collection.size().getInfo()
+
+    def bound(self):
+        """Returns the AOI as ee.Geometry.Rectanlge"""
+        return ee.Geometry.Rectangle(self.roi)
+
+    def add_ndvi(self, image):
+        """Calculates and adds NDVI band to given image.
+        Used inside ndvi_collection function.
+
+            Parameters:
+                image (ee.Image): Single image.
+            Returns:
+                image (ee.Image): Input image with added NDVI band.
+        """
+        if self.collection_id == 'Sentinel':
+            ndvi = image.expression(
+                '((nir-red)/(nir+red))',
+                {'nir': image.select('B4'),
+                 'red': image.select('B8')}
+            ).rename('NDVI')
+        elif self.collection == 'Landsat8':
+            ndvi = image.expression(
+                '((nir - red)/(nir + red))',
+                {'nir': image.select('SR_B5'),
+                 'red': image.select('SR_B4')}
+            ).rename('NDVI')
+
+        return image.addBands(ndvi)
+
+    def add_evi(self, image):
+        """Calculates and adds EVI band to given image.
+                Used inside evi_collection function.
+
+                    Parameters:
+                        image (ee.Image): Single image.
+                    Returns:
+                        image (ee.Image): Input image with added EVI band.
+                """
+        if self.collection == 'Sentinel':
+            evi = image.expression(
+                '2.4*((nir-red)/(nir+ 6*red - 7.5* blue +1))',
+                {'nir': image.select('SR_B8'),
+                 'red': image.select('SR_B4'),
+                 'blue': image.select('SR_B2')}
+            ).rename('EVI')
 
 
-        
+        elif self.collection == 'Landsat8':
+            evi = image.expression(
+                '(2.5 * (nir–red) / (nir + 6 * red – 7.5 * blue + 1)',  # Change to Landsat8 here!
+                {'nir': image.select('SR_B5'),
+                 'red': image.select('SR_B4'),
+                 'blue': image.select('SR_B2')}
+            ).rename('EVI')
+
+        return image.addBands(evi)
+
+    def ndvi_collection(self):
+        """Maps add_ndvi() to the image collection."""
+        self.collection = self.collection.map(self.add_ndvi)
+
+    def evi_collection(self):
+        """Maps add_evi() to the image collection."""
+        self.collection = self.collection.map(self.add_evi)
+
+    def reduce_ndvi_mean(self):
+        """Reduces the time-series collection based on the ROI using NDVI band and mean.
+
+        Attributes reducer and df get assigned.
+        """
+        aoi = self.bound()
+
+        def aoi_ndvi_mean(image, aoi=aoi):
+            """Calculates NDVI mean for a given image based on AOI.
+            Inner function of reduce_ndvi_mean().
+
+                Parameters:
+                    image (ee.Image): Input image.
+                    aoi (ee.Geometry): AOI geometry.
+                Returns:
+                    feature (ee.Feature): Feature that stores the time-stamp and mean NDVI.
+            """
+            # Extract the date from the image metadata
+            date = ee.Date(image.get('system:time_start')).format("YYYY-MM-dd", 'UTC')
+
+            # Calculate the mean NDVI value within the AOI
+            mean = image.select('NDVI').reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=aoi
+            ).get('NDVI')
+
+            # Return the date and mean NDVI as a feature
+            return ee.Feature(None, {
+                'date': date,
+                'mean_ndvi': mean
+            })
+
+        features = self.collection.map(aoi_ndvi_mean).getInfo()
+
+        # Extract dates and mean NDVI values from the feature collection
+        dates = [feature['properties']['date'] for feature in features['features']]
+        mean_ndvi = [features['properties']['mean_ndvi'] for features in features['features']]
+
+        # Create a DataFrame from the extracted data
+        df = pd.DataFrame({
+            'Date': dates,
+            'Mean_NDVI': mean_ndvi
+        })
+
+        # Sort the DataFrame by date
+        df_sorted = df.sort_values(by='Date')
+
+        self.df = df_sorted
+        self.reducer = 'NDVI_MEAN'
+
+    def plot(self):
+        """Standard plotting function for the geoindexity time-series object."""
+        if self.reducer == 'NDVI_MEAN':
+            plt.figure(figsize=(10, 5))
+            plt.plot(self.df['Date'], self.df['Mean_NDVI'], marker='o', linestyle='--')
+            plt.title('Mean NDVI Time Series')
+            plt.xlabel('Date')
+            plt.xticks(rotation=45)
+            plt.ylabel('Mean NDVI')
+            plt.yticks(np.arange(-1, 1, 0.5))
+            plt.grid(True)
+            plt.show()
