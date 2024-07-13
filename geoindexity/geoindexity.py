@@ -51,7 +51,7 @@ class Landsat:
         self.roi = roi
         self.start_date = start_date
         self.end_date = end_date
-        self.collection_id= collection_id
+        self.collection_id= 'LANDSAT/LC08/C02/T1_L2'
         self.properties = properties or {}
 
     def bound(self):
@@ -84,7 +84,7 @@ class Landsat:
             for property_name, value in self.properties.items():
                 if property_name not in valid_properties:
                     raise KeyError(f"Invalid property name: {property_name}. Supported properties: {', '.join(valid_properties.keys())}.")
-                image_collection=image_collection.filter(ee.Filter.lte(property_name, value))
+                image_collection = image_collection.filter(ee.Filter.lte(property_name, value))
         return image_collection
 
     def select_mission(self):
@@ -109,7 +109,7 @@ class Landsat:
     def number_of_images(self):
         """Prints the total number of images in the filtered Landsat image collection."""
         print(f'Total Landsat images collected: {self.select_product().size().getInfo()}')
-    
+
 class Sentinel:
     """
     A class to handle Sentinel satellite imagery from Google Earth Engine.
@@ -124,7 +124,7 @@ class Sentinel:
         The end date for filtering the image collection (format: 'YYYY-MM-DD').
     collection_id : str
         The ID of the Sentinel image collection.
-    properties
+    properties : dict
         Properties for additional filtering, such as CLOUDY_PIXEL_PERCENTAGE.
     """
     def __init__(self, roi, start_date, end_date, collection_id, properties=None):
@@ -140,13 +140,13 @@ class Sentinel:
             The end date for filtering the image collection (format: 'YYYY-MM-DD').
         collection_id : str
             The ID of the Sentinel image collection.
-        properties
+        properties : dict, optional
             Properties for additional filtering, such as CLOUDY_PIXEL_PERCENTAGE.
         """
         self.roi = roi
         self.start_date = start_date
         self.end_date = end_date
-        self.collection_id= collection_id
+        self.collection_id= 'COPERNICUS/S2_SR_HARMONIZED'
         self.properties = properties or {}
 
     def bound(self):
@@ -160,7 +160,7 @@ class Sentinel:
         return ee.Geometry.Rectangle(self.roi) 
     
     def select_product(self):
-         """Filters the Landsat image collection based on the date range, region of interest, and optional properties.
+        """Filters the Sentinel image collection based on the date range, region of interest, and optional properties.
 
         Returns
         ----------
@@ -179,13 +179,12 @@ class Sentinel:
             for property_name, value in self.properties.items():
                 if property_name not in valid_properties:
                     raise KeyError(f"Invalid property name: {property_name}. Supported properties: {', '.join(valid_properties.keys())}.")
-                image_collection=image_collection.filter(ee.Filter.lte(property_name, value))
+                image_collection = image_collection.filter(ee.Filter.lte(property_name, value))
         return image_collection
 
     def number_of_images(self):
-        """Prints the total number of images in the filtered Landsat image collection."""
+        """Prints the total number of images in the filtered Sentinel image collection."""
         print(f'Total Sentinel images collected: {self.select_product().size().getInfo()}')
-
 
 class Geoindexity:
     """
@@ -233,29 +232,30 @@ class Geoindexity:
        Standard plotting function for the geoindexity time-series object.
     """
 
-    def __init__(self, roi, start_date, end_date, collection_id='Sentinel',
-                 properties=None):
+    def __init__(self, roi, start_date, end_date, collection_id='Sentinel', properties=None): # collection argument as identifier between Sentinel and Landsat? 
         self.roi = roi
         self.start_date = start_date
         self.end_date = end_date
         self.collection_id = collection_id
         self.properties = properties
-        self.reducer = None # attribute assigned when reduced
-        self.df = None # dataframe assigned when reduced
+        self.reducer = None 
+        self.df = None 
 
         if self.collection_id == 'Sentinel':
             self.collection = Sentinel(roi=self.roi,
                                        start_date=self.start_date,
                                        end_date=self.end_date,
+                                       collection_id= 'COPERNICUS/S2_SR_HARMONIZED',
                                        properties=self.properties
                                        ).select_product()
 
         if self.collection_id == 'Landsat8':
             self.collection = Landsat8(roi=self.roi,
-                                       start_date=self.start_date,
-                                       end_date=self.end_date,
-                                       properties=self.properties
-                                       ).select_product()
+                               start_date=self.start_date,
+                               end_date=self.end_date,
+                               collection_id= 'LANDSAT/LC08/C02/T1_L2',
+                               properties=self.properties
+                               ).select_product()
 
     def __len__(self):
         """Returns the number if images in the time-series."""
@@ -280,7 +280,7 @@ class Geoindexity:
                 {'nir': image.select('B4'),
                  'red': image.select('B8')}
             ).rename('NDVI')
-        elif self.collection == 'Landsat8':
+        elif self.collection_id == 'Landsat8':
             ndvi = image.expression(
                 '((nir - red)/(nir + red))',
                 {'nir': image.select('SR_B5'),
@@ -298,7 +298,7 @@ class Geoindexity:
                     Returns:
                         image (ee.Image): Input image with added EVI band.
                 """
-        if self.collection == 'Sentinel':
+        if self.collection_id == 'Sentinel':
             evi = image.expression(
                 '2.4*((nir-red)/(nir+ 6*red - 7.5* blue +1))',
                 {'nir': image.select('SR_B8'),
@@ -307,7 +307,7 @@ class Geoindexity:
             ).rename('EVI')
 
 
-        elif self.collection == 'Landsat8':
+        elif self.collection_id == 'Landsat8':
             evi = image.expression(
                 '(2.5 * (nir–red) / (nir + 6 * red – 7.5 * blue + 1)',  # Change to Landsat8 here!
                 {'nir': image.select('SR_B5'),
@@ -361,7 +361,7 @@ class Geoindexity:
 
         # Extract dates and mean NDVI values from the feature collection
         dates = [feature['properties']['date'] for feature in features['features']]
-        mean_ndvi = [features['properties']['mean_ndvi'] for features in features['features']]
+        mean_ndvi = [feature['properties']['mean_ndvi'] for feature in features['features']]
 
         # Create a DataFrame from the extracted data
         df = pd.DataFrame({
@@ -387,3 +387,94 @@ class Geoindexity:
             plt.yticks(np.arange(-1, 1, 0.5))
             plt.grid(True)
             plt.show()
+
+    def export_image_to_drive(self, image, description, folder='earth_engine_exports'):
+        """Exports a single image to Google Drive.
+
+        Parameters:
+            image (ee.Image): Image to export.
+            description (str): Description for the exported image.
+            folder (str): Folder name in Google Drive where the image will be exported (default: 'earth_engine_exports').
+        """
+        task = ee.batch.Export.image.toDrive(image=image,
+                                             description=description,
+                                             folder=folder,
+                                             scale=30,  # Adjust scale as needed
+                                             region=self.bound())
+        task.start()
+
+        print(f'Exporting {description} to Google Drive...')
+        print(f'Export task id: {task.id}')
+    
+    def export_image_collection_to_drive(self, description, folder='earth_engine_exports'):
+        """Exports the entire image collection to Google Drive as a single zip file.
+
+        Parameters:
+            description (str): Description for the exported image collection.
+            folder (str): Folder name in Google Drive where the zip file will be exported (default: 'earth_engine_exports').
+        """
+        images = self.collection.toList(self.collection.size())
+        task = ee.batch.Export.image.toDrive(imageCollection=images,
+                                             description=description,
+                                             folder=folder,
+                                             fileFormat='GeoTIFF',
+                                             region=self.bound())
+        task.start()
+
+        print(f'Exporting {description} to Google Drive...')
+        print(f'Export task id: {task.id}')
+
+    def export_plot_to_drive(self, description, folder='earth_engine_exports'):
+        """Exports the current plot to Google Drive as a PNG file.
+
+        Parameters:
+            description (str): Description for the exported plot.
+            folder (str): Folder name in Google Drive where the plot will be exported (default: 'earth_engine_exports').
+        """
+        plt.figure(figsize=(10, 5))
+        plt.plot(self.df['Date'], self.df['Mean_NDVI'], marker='o', linestyle='--')
+        plt.title('Mean NDVI Time Series')
+        plt.xlabel('Date')
+        plt.xticks(rotation=45)
+        plt.ylabel('Mean NDVI')
+        plt.yticks(np.arange(-1, 1, 0.5))
+        plt.grid(True)
+
+        # Save the plot to a temporary file
+        temp_file = 'plot.png'
+        plt.savefig(temp_file)
+        plt.close()
+
+        # Export the plot file to Google Drive
+        task = ee.batch.Export.table.toDrive(collection=ee.FeatureCollection([]),
+                                             description=description,
+                                             folder=folder,
+                                             fileFormat='png',
+                                             selectors=['Date', 'Mean_NDVI'])
+        task.start()
+
+        print(f'Exporting {description} plot to Google Drive...')
+        print(f'Export task id: {task.id}')
+
+def download_plot_local(obj, fig_name='plot.png'):
+    """
+    Generates and saves a plot locally.
+
+    Parameters:
+    - obj: Geoindexity
+        The Geoindexity object containing the data to plot.
+    - fig_name: str, optional
+        The filename to save the plot as (default is 'plot.png').
+    """
+    plt.figure(figsize=(10, 5))
+    plt.plot(obj.df['Date'], obj.df['Mean_NDVI'], marker='o', linestyle='--')
+    plt.title('Mean NDVI Time Series')
+    plt.xlabel('Date')
+    plt.xticks(rotation=45)
+    plt.ylabel('Mean NDVI')
+    plt.grid(True)
+    plt.savefig(fig_name)
+    plt.close()
+
+    # Print a message indicating where the file is saved
+    print(f'Plot saved as: {fig_name}')
