@@ -330,6 +330,10 @@ class Geoindexity:
 
         Attributes reducer and df get assigned.
         """
+        # Check if NDVI in collection 
+        if not 'NDVI' in x.collection.first().bandNames().getInfo():
+            raise ValueError(f"No NDVI band found. Use ndvi_collection method first to calculate NDVI")
+            
         aoi = self.bound()
 
         def aoi_ndvi_mean(image, aoi=aoi):
@@ -377,6 +381,9 @@ class Geoindexity:
 
     def plot(self):
         """Standard plotting function for the geoindexity time-series object."""
+        if not self.reducer:
+            raise ValueError(f"Time-series not reduced yet. Use reducer function based on your selected Index")
+        
         if self.reducer == 'NDVI_MEAN':
             plt.figure(figsize=(10, 5))
             plt.plot(self.df['Date'], self.df['Mean_NDVI'], marker='o', linestyle='--')
@@ -387,6 +394,7 @@ class Geoindexity:
             plt.yticks(np.arange(-1, 1, 0.5))
             plt.grid(True)
             plt.show()
+            
 
     def export_image_to_drive(self, image, description, folder='earth_engine_exports'):
         """Exports a single image to Google Drive.
