@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geoindexity"
+version = "0.0.1"
+authors = [
+  { name="Rohit Khati", email="rohit.khati@stud.plus.ac.at" },
+  { name="Gernot Nikolaus", email="gernot.nikolaus@stud.plus.ac.at" },
+  { name="Assad Ullah", email="asad.ullah@stud.plus.ac.at" },
+  { name="David Hansen", email="david.hansen@stud.plus.ac.at" },
+]
+
+description = "Fast vegetation index time-series creation for Google Earth Engine"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy",
+    "earthengine-api",
+    "matplotlib", 
+    "pandas"
+]
+
+[project.urls]
+Homepage = "https://github.com/ro-hit81/GeoIndexity"
+Issues = "https://github.com/ro-hit81/GeoIndexity/issues"
