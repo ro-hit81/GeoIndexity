@@ -1,4 +1,4 @@
-# GeoIndexity Script Documentation
+# GeoIndexity Package Documentation
 Here, a package will be created which will use the power of Google Earth Engine in the Backend, and provide the tools to calculate the indices along with the time series for user specified date and area.
 
 ## About the project
@@ -10,12 +10,42 @@ This script provides classes and functions to interact with satellite imagery fr
 ### About the package
 The Python Package gives useres the opportunity to access remote sensing indices from Sentinel-2 as well as Landsat, and calculate their repective times series charts for their study area. In this process, Google Earth Engine is used.
 
+## Installation 
+The package is not deployed to PyPI yet. However, you can install the package in your prefered package management system like `conda` that allows for packagae installation using `pip`.  
+
 ### Requirements
 
 To use this script, you need:
 - Access to Google Earth Engine (GEE) with a valid account and authentication.
 - Python libraries: Earth Engine Python API (`ee`), Pandas (`pd`), Matplotlib (`plt`), and NumPy (`np`).
 
+### pip Workflow
+Use the following command to install Geoindexity using pip: 
+```
+pip install git+https://github.com/ro-hit81/GeoIndexity
+```
+### conda workflow 
+Activate your prefered conda environment: 
+```
+conda activate YOUR_ENVIRONMENT
+```
+
+If `pip`is not installed yet use: 
+```
+conda install pip 
+```
+
+After pip is installed, use the command from above: 
+```
+pip install git+https://github.com/ro-hit81/GeoIndexity
+
+```
+
+### Uninstall package 
+To uninstall use the following pip command: 
+```
+pip uninstall geoindexity 
+```
 ### Classes and Functions
 
 #### Landsat Class
