@@ -9,6 +9,7 @@ This package was developed by the students Rohit Khati, David Hansen, Gernot Nik
 To use this script, you need:
 - Access to Google Earth Engine (GEE) with a valid account and authentication.
 - Python libraries: Earth Engine Python API (`ee`), Pandas (`pd`), Matplotlib (`plt`), and NumPy (`np`).
+
 The **environmental.yml** file allows to create a conda environment with all dependencies installed. 
 ## Installation 
 The package is not deployed to PyPI yet. However, you can install the package in your prefered package management system like `conda` that allows for packagae installation using `pip`.  
