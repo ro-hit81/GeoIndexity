@@ -76,7 +76,7 @@ properties = {
 
 ts = gx.Geoindexity(roi, start_date, end_date, properties=properties, collection_id='Sentinel')
 
-gx.ndvi_collection() 
-gx.reduce_ndvi_mean()
-gx.plot() 
+ts.ndvi_collection() 
+ts.reduce_ndvi_mean()
+ts.plot() 
 ````
