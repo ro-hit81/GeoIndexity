@@ -39,6 +39,9 @@ To uninstall use the following pip command:
 pip uninstall geoindexity 
 ```
 
+## Documentation 
+Find full documentation [here](./docs/documentation.md)
+
 ## Working example
 Import dependencies:
 ```python 

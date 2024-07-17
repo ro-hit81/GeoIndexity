@@ -1,7 +1,7 @@
 # Classes and Functions
 
 ## Landsat Class
-
+**NOT OPERATIONAL YET** 
 The `Landsat` class provides methods to handle Landsat satellite imagery from Google Earth Engine.
 
 ### Attributes
